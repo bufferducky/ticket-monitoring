@@ -253,6 +253,10 @@
 
 ## 快速开始（免装 Python）
 
+**本分支 macOS 登录修复包（Apple Silicon）**：[下载修复包](https://github.com/bufferducky/ticket-monitoring/releases/download/v1.5.307-macos-gui-fix/ticket-monitoring-macos-arm64-gui-fix.zip) · [修复说明与校验值](https://github.com/bufferducky/ticket-monitoring/releases/tag/v1.5.307-macos-gui-fix)。
+解压后双击「启动.command」，默认访问 `http://127.0.0.1:8765`；
+与旧版并行验证时双击「启动测试.command」，访问独立端口 `8766`。同一目录只能运行一个实例。
+
 1. 到 [Releases](https://github.com/dengmeiluan/ticket-monitoring/releases) 下载对应平台包（约 60–94MB）：Windows `…-win64.zip` / Linux `…-linux-x64.zip` / Apple Silicon `…-macos-arm64.zip` / Intel 芯片 Mac `…-macos-x64.zip`
 2. 解压到任意目录并运行：Windows `TicketMonitor.exe`；
    Linux/macOS `chmod +x TicketMonitor && ./TicketMonitor`
@@ -261,6 +265,11 @@
    - 直飞心理价 / 中转心理价 / 中转最晚到达时刻
    - 钉钉机器人 Webhook + 加签密钥（[创建方法](#钉钉机器人配置)），点「🔔 测试推送」即验
 4. 保存即热重载生效，监控开始
+
+macOS 发行包是包含 Python 运行时的本机可执行程序，操作界面在浏览器中打开；
+无需安装 Python 或 Docker。首次运行会下载 Chromium 内核，请保持终端运行。
+在 Mac 桌面运行时，「渠道登录」会打开本机浏览器窗口，无需设置 Linux 的
+`DISPLAY` / `WAYLAND_DISPLAY`；缺少这些变量的无桌面 Linux 仍会提示导入会话。
 
 **全部渠道都必须登录**（2026-10-27 定；App 渠道接入后同样适用）：入口页大多能匿名浏览，但**出价与明细都要登录后才有**——不再用「建议登录」这种模糊说法。控制台「⚙️ 配置 → 🔐 渠道登录」一键弹窗保存，也可启动时加 `--login <渠道>`。各渠道的差异在会话槽位，不在「要不要登」：
 > - **携程**：PC 与 H5 都要登录后才出价；

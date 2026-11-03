@@ -26762,14 +26762,18 @@ document.getElementById("console").href=location.origin+"/#details"
 
 
 def _no_graphical_env() -> bool:
-    """当前进程是否确定没有图形环境（Docker / 无 X 的 Linux）。
+    """当前进程是否确定没有图形环境（Docker / 无桌面的 Linux）。
+
+    DISPLAY / WAYLAND_DISPLAY 是 Linux 显示服务的环境变量；macOS
+    使用原生窗口系统，不能因缺少这两个变量就阻止登录窗口启动。
+    其它平台的真实开窗失败仍由 ready 等待与 window_failed 返回。
 
     单源：登录窗口能不能弹出，只看这一处。测试改为替换本函数，
     不必再用 monkeypatch 去改进程级 `os.environ.get`——那会把补丁
     泄漏给同进程的其它用例（实测让 `_bind_host` 读到被替换的 get，
     容器监听地址门禁在 CI 上假红）。
     """
-    return (os.name == "posix"
+    return (sys.platform.startswith("linux")
             and not os.environ.get("DISPLAY")
             and not os.environ.get("WAYLAND_DISPLAY"))
 

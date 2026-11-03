@@ -201,12 +201,23 @@ The capability map follows **collect → push → visualize → configure**. Eac
 
 ## Quick start (prebuilt, no Python needed)
 
+**Apple Silicon macOS login fix in this fork**: [download the fixed package](https://github.com/bufferducky/ticket-monitoring/releases/download/v1.5.307-macos-gui-fix/ticket-monitoring-macos-arm64-gui-fix.zip) · [release notes and checksum](https://github.com/bufferducky/ticket-monitoring/releases/tag/v1.5.307-macos-gui-fix).
+After extraction, double-click `启动.command` for the default port `8765`, or
+`启动测试.command` to test alongside an older installation on port `8766`.
+Run only one instance from the same directory.
+
 1. Download your platform package from [Releases](https://github.com/dengmeiluan/ticket-monitoring/releases) (about 60–94 MB):
    Windows `…-win64.zip` / Linux `…-linux-x64.zip` / Apple Silicon `…-macos-arm64.zip` / Intel Mac `…-macos-x64.zip`.
 2. Unzip anywhere and run it: Windows `TicketMonitor.exe`;
    Linux/macOS `chmod +x TicketMonitor && ./TicketMonitor`.
 3. Open `http://127.0.0.1:8765` → ⚙️ Settings: add routes (Chinese city names with autocomplete), target prices, and your DingTalk robot Webhook + signing secret. Hit 「🔔 测试推送」 to verify.
 4. Save — monitoring starts immediately.
+
+The macOS package bundles a native executable and the Python runtime, with its UI
+in your browser. Python and Docker are not required. Keep the terminal running
+while Chromium downloads on first launch. On a Mac desktop, channel login opens
+a local browser window without Linux's `DISPLAY` / `WAYLAND_DISPLAY` variables;
+headless Linux without either variable still requires session import.
 
 **All channels require a login** (decided 2026-10-27; the App channels follow the same rule): entry pages are mostly browsable anonymously, but **fares and detail only appear after signing in** — the vague "login recommended" wording is gone. Save a session from the console's "⚙️ Settings → 🔐 Channel login", or pass `--login <channel>` at startup. What differs between channels is the session slot, not whether you need one:
 > - **Ctrip**: both PC and H5 need a session before fares appear;
