@@ -24,15 +24,16 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from core.storage import PriceStorage
 from core.pacing import PLATFORMS
 from core.login_slots import LOGIN_SLOTS, LOGIN_SLOT_ORDER, slot_crawler
+from core.paths import app_root
 from crawlers.base import CHANNEL_GATE, platform_lock, channel_slot
 from core.alerter import (Alerter, _qual_price, FLIGGY_TAX_PAD,
                           xchan_phantom_idx, NEAR_RATIO, _append_before_at)
 from report import _rounds, recent_platform_flights, _daily_minima
 
-# 仓库根锚定（CWD 漂移免疫家族，与 main._SENT_PATH 同族收口）：
-# 与 main 同进程但 db/log/notify 读取曾按 CWD 解析——main 锚定后单向
-# 分叉，CWD 漂移时 sqlite3.connect 会在错误路径静默新建空库（写副作用）
-_ROOT = os.path.dirname(os.path.abspath(__file__))
+# 与采集端共用数据根：源码态为仓库根，打包态为可执行文件目录。
+# 打包后的 __file__ 在 _internal 内，按它定位会把网页登录会话保存到
+# 采集端不会读取的另一个 user_data 中，数据库与日志也会读错目录。
+_ROOT = app_root()
 
 
 def _anchored(p, default):

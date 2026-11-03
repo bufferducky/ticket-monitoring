@@ -7,10 +7,70 @@
 """
 import os
 import sys
+import importlib.util
+import shutil
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core import paths
+
+
+@pytest.fixture
+def bundled_webui(monkeypatch, tmp_path):
+    """按真实打包布局加载整个 webui，覆盖模块初始化时的根目录选择。"""
+    import main
+
+    app = tmp_path / "TicketMonitor"
+    internal = app / "_internal"
+    internal.mkdir(parents=True)
+    source = os.path.join(os.path.dirname(main.__file__), "webui.py")
+    target = internal / "webui.py"
+    shutil.copyfile(source, target)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(app / "TicketMonitor"))
+    monkeypatch.setattr(main, "_REPO_ROOT", str(app))
+    name = "_bundled_webui_paths_test"
+    spec = importlib.util.spec_from_file_location(name, target)
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, name, module)
+    spec.loader.exec_module(module)
+    module._State.cfg = {}
+    module._State.boot_cfg = {}
+    return module, app
+
+
+@pytest.mark.parametrize("session_dir", [None, "profiles", "absolute"])
+def test_bundled_login_and_fetch_share_saved_session(bundled_webui, session_dir):
+    """网页登录写入的凭据必须被同一配置下的采集器读到。"""
+    import logging
+    import main
+    from core.login_slots import slot_crawler
+    from crawlers.ctrip import CtripCrawler
+
+    ui, app = bundled_webui
+    if session_dir == "absolute":
+        session_dir = str(app.parent / "custom-profiles")
+    crawler_cfg = {"user_data_dir": session_dir} if session_dir else {}
+    ui._State.boot_cfg = {"crawler": crawler_cfg}
+    fetch_cfg = dict(crawler_cfg, user_data_dir=main._anchored(
+        session_dir, "user_data"))
+    logger = logging.getLogger("test-bundled-paths")
+    login = slot_crawler("ctrip", ui._effective_crawler_config(), logger)
+    fetch = CtripCrawler(fetch_cfg, logger)
+    assert login.session_state_path == fetch.session_state_path
+    login._write_session_state({"cookies": [{
+        "name": "cticket", "value": "synthetic-test-ticket",
+        "domain": ".ctrip.com", "path": "/", "expires": -1,
+    }], "origins": []}, 1700000000)
+    assert any(c["name"] == "cticket" for c in fetch.load_session_cookies())
+
+
+def test_bundled_webui_storage_paths_use_executable_dir(bundled_webui):
+    ui, app = bundled_webui
+    assert ui._anchored(None, "data/prices.db") == str(app / "data/prices.db")
+    assert ui._anchored(None, "logs/monitor.log") == str(app / "logs/monitor.log")
 
 
 def test_source_mode_uses_repo_root(monkeypatch):
