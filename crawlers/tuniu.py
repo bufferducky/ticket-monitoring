@@ -32,6 +32,7 @@ import re
 import threading
 import time
 from typing import Any, List, Optional
+from urllib.parse import urlsplit
 
 import httpx
 from core import net as _net
@@ -241,6 +242,7 @@ class TuniuCrawler(BaseCrawler):
         self._login_wall: bool = False
         self._last_challenge = None
         self._last_challenge_intl = None
+        self._last_request_error = None
         self._saved_cookies: list = []
         self._saved_cookies_at: float = 0.0
         self._saved_token: str = ""
@@ -307,9 +309,33 @@ class TuniuCrawler(BaseCrawler):
         except Exception:
             return ""
 
+    @staticmethod
+    def _api_cookie(cookies, name: str) -> str:
+        """按接口域名选 Cookie；PC/H5 的同名 Cookie 可以合法共存。"""
+        jar = getattr(cookies, "jar", None)
+        if jar is None:
+            return cookies.get(name, "") or ""
+        target = urlsplit(LIST_API)
+        matches = []
+        for cookie in jar:
+            if cookie.name != name or cookie.is_expired():
+                continue
+            domain = cookie.domain.lstrip(".")
+            if domain and not (
+                    target.hostname == domain or
+                    (cookie.domain_specified and
+                     target.hostname.endswith("." + domain))):
+                continue
+            path = cookie.path or "/"
+            if not (target.path == path or
+                    target.path.startswith(path if path.endswith("/") else path + "/")):
+                continue
+            matches.append((len(path), len(domain), cookie.value))
+        return max(matches, key=lambda item: item[:2])[2] if matches else ""
+
     def _install_tac_cookies(self, client: httpx.Client) -> None:
         now = int(time.time() * 1000)
-        udid = client.cookies.get("udid") or self._fetch_udid(client)
+        udid = self._api_cookie(client.cookies, "udid") or self._fetch_udid(client)
         cookies = {
             "udid": udid,
             "_taca": f"{now}.{now}.{now}.1",
@@ -324,7 +350,7 @@ class TuniuCrawler(BaseCrawler):
                 continue
             # 654: 保存会话里的 _taca 带登录时间，重写会破坏 710114 登录态；
             # 任何已存在（保存态或站点下发）的 cookie 都不得覆盖。
-            if client.cookies.get(k):
+            if self._api_cookie(client.cookies, k):
                 continue
             client.cookies.set(k, v, domain=COOKIE_DOMAIN, path="/")
 
@@ -625,6 +651,7 @@ class TuniuCrawler(BaseCrawler):
 
     def _one_attempt(self, depart_code, arrive_code, depart_date, polls=None,
                      back_date=""):
+        self._last_request_error = None
         page_token = self._saved_page_token(depart_code, arrive_code, depart_date)
         client = _net.new_client(self.config.get("tls_impersonate", "chrome"),
             headers=profile_headers(self.fingerprint(), {
@@ -652,7 +679,7 @@ class TuniuCrawler(BaseCrawler):
                     except Exception:
                         pass
             self._install_tac_cookies(client)
-            mtoken = client.cookies.get("mtoken", "") or ""
+            api_token = page_token or self._api_cookie(client.cookies, "mtoken")
 
             d_tmpl = {
                 "systemId": 53, "channelCount": 0,
@@ -662,7 +689,7 @@ class TuniuCrawler(BaseCrawler):
                     {"dCityIataCode": depart_code, "aCityIataCode": arrive_code, "departDate": depart_date}
                 ],
                 "rph": 0, "hackersFlightNos": None,
-                "tokenKey": page_token or mtoken,
+                "tokenKey": api_token,
             }
             if back_date:
                 # r769：国内往返是**接口原生**的——第二段带真实返程日时，
@@ -726,6 +753,7 @@ class TuniuCrawler(BaseCrawler):
                 return True, best[0], blocked
             return False, None, blocked
         except Exception as ex:
+            self._last_request_error = (self._exc_status(ex), str(ex)[:160])
             self.logger.warning("[tuniu] 请求异常: %s", ex)
             return False, None, False
         finally:
@@ -1501,18 +1529,20 @@ class TuniuCrawler(BaseCrawler):
                 continue
             t_h5 = time.time()
             self._last_challenge = None
+            self._last_request_error = None
             raw = self._hoop(fc, tc, date, back_date=ret_date)
             self._dump_raw(raw, f"tuniu_raw_{date}")
             if raw is None:
                 self.logger.warning("[tuniu] %s 未拿到真实价格", date)
                 _sig = getattr(self, "_last_challenge", None)
+                _err = self._last_request_error
                 self.path_note(
                     "H5/API",
                     _sig.status if _sig else
-                    ("login" if type(self).login_suspect else "empty"),
+                    (_err[0] if _err else "empty"),
                     date=date,
                     detail=(_sig.detail if _sig else
-                            "m.tuniu.com 接口未返回价格"),
+                            (_err[1] if _err else "m.tuniu.com 接口未返回价格")),
                     ms=int((time.time() - t_h5) * 1000))
                 self._sleep()
                 continue
@@ -2200,9 +2230,9 @@ class TuniuCrawler(BaseCrawler):
     def _dump_raw(self, raw: Optional[dict], tag: str):
         if not self.debug or not raw:
             return
-        os.makedirs(self.debug_dir, exist_ok=True)
-        path = os.path.join(self.debug_dir, tag + ".json")
         try:
+            os.makedirs(self.debug_dir, exist_ok=True)
+            path = os.path.join(self.debug_dir, tag + ".json")
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(raw, f, ensure_ascii=False, indent=2)
             self.logger.info("[tuniu] 已保存原始响应: %s", path)
