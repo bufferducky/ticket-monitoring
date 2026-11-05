@@ -1485,12 +1485,19 @@ def test_savecfg_dates_validation_hint():
 
 # ---- 回归：页脚版本号脱节（tag 已到 而 __version__ 仍，
 # 12 个版本没维护——发版纪律里「版本引用同步」缺一道硬门禁） ----
-def test_version_matches_latest_tag():
+@pytest.mark.parametrize("tag_override", [
+    None, "v1.5.307-macos-channel-fix", "v1.5.307-macos-gui-fix",
+])
+def test_version_matches_latest_tag(monkeypatch, tag_override):
     """__version__ 不得落后于最新 git tag（领先=开发中未发版，允许）；
     无 git 环境（打包/CI 浅克隆）跳过。"""
     import subprocess
     import pytest
     from main import __version__
+    if tag_override:
+        from types import SimpleNamespace
+        monkeypatch.setattr(subprocess, "run", lambda *a, **k: SimpleNamespace(
+            returncode=0, stdout=tag_override))
     try:
         r = subprocess.run(["git", "describe", "--tags", "--abbrev=0"],
                            capture_output=True, text=True, timeout=10)
@@ -1499,7 +1506,9 @@ def test_version_matches_latest_tag():
         pytest.skip("no git available")
     if r.returncode != 0 or not tag:
         pytest.skip("当前工作树没有可达 tag（隔离 worktree/分叉历史）")
-    vt = lambda s: tuple(int(x) for x in s.lstrip("v").split("."))
+    # 平台修复标签沿用基础版本；构建后缀不参与数字版本比较。
+    vt = lambda s: tuple(int(x) for x in s.lstrip("v").split("-", 1)[0]
+                         .split("+", 1)[0].split("."))
     assert vt(__version__) >= vt(tag), \
         f"__version__={__version__} 落后于最新 tag {tag}——发版时必须同步"
 

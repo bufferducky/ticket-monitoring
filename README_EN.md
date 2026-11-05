@@ -201,10 +201,14 @@ The capability map follows **collect → push → visualize → configure**. Eac
 
 ## Quick start (prebuilt, no Python needed)
 
-**Apple Silicon macOS login fix in this fork**: [download the fixed package](https://github.com/bufferducky/ticket-monitoring/releases/download/v1.5.307-macos-gui-fix/ticket-monitoring-macos-arm64-gui-fix.zip) · [release notes and checksum](https://github.com/bufferducky/ticket-monitoring/releases/tag/v1.5.307-macos-gui-fix).
-After extraction, double-click `启动.command` for the default port `8765`, or
+**Apple Silicon macOS channel fixes in this fork (2026-11-05)**: [download the fixed package](https://github.com/bufferducky/ticket-monitoring/releases/download/v1.5.307-macos-channel-fix/ticket-monitoring-macos-arm64-channel-fix.zip) · [release notes and checksum](https://github.com/bufferducky/ticket-monitoring/releases/tag/v1.5.307-macos-channel-fix) · [upgrade instructions (Chinese)](docs/release-notes-v1.5.307-macos-channel-fix.md).
+Fixes Qunar collection aborting on an empty debug directory, false session-expiry reports,
+and Tuniu cookies with identical names on different domains.
+After extraction, double-click `启动.command` to run in the background on port `8765`, or
 `启动测试.command` to test alongside an older installation on port `8766`.
-Run only one instance from the same directory.
+The normal launcher lets you close the terminal; the test launcher requires it to remain open.
+Use `停止.command`, `重启.command`, and `查看状态.command` to stop, restart, and inspect the service.
+Starting automatically when logging into macOS remains disabled. Run only one instance from the same directory.
 
 1. Download your platform package from [Releases](https://github.com/dengmeiluan/ticket-monitoring/releases) (about 60–94 MB):
    Windows `…-win64.zip` / Linux `…-linux-x64.zip` / Apple Silicon `…-macos-arm64.zip` / Intel Mac `…-macos-x64.zip`.
@@ -214,8 +218,9 @@ Run only one instance from the same directory.
 4. Save — monitoring starts immediately.
 
 The macOS package bundles a native executable and the Python runtime, with its UI
-in your browser. Python and Docker are not required. Keep the terminal running
-while Chromium downloads on first launch. On a Mac desktop, channel login opens
+in your browser. Python and Docker are not required. Chromium downloads on first launch.
+Before upgrading, stop the old instance and copy your configuration, data, and saved sessions
+as described in the upgrade instructions. On a Mac desktop, channel login opens
 a local browser window without Linux's `DISPLAY` / `WAYLAND_DISPLAY` variables;
 headless Linux without either variable still requires session import.
 

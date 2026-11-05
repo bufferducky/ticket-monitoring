@@ -253,8 +253,10 @@
 
 ## 快速开始（免装 Python）
 
-**本分支 macOS 登录修复包（Apple Silicon）**：[下载修复包](https://github.com/bufferducky/ticket-monitoring/releases/download/v1.5.307-macos-gui-fix/ticket-monitoring-macos-arm64-gui-fix.zip) · [修复说明与校验值](https://github.com/bufferducky/ticket-monitoring/releases/tag/v1.5.307-macos-gui-fix)。
-解压后双击「启动.command」，默认访问 `http://127.0.0.1:8765`；
+**本分支 macOS 渠道修复包（Apple Silicon，2026-11-05）**：[下载修复包](https://github.com/bufferducky/ticket-monitoring/releases/download/v1.5.307-macos-channel-fix/ticket-monitoring-macos-arm64-channel-fix.zip) · [更新说明与校验值](https://github.com/bufferducky/ticket-monitoring/releases/tag/v1.5.307-macos-channel-fix) · [升级步骤](docs/release-notes-v1.5.307-macos-channel-fix.md)。
+修复去哪儿取数被空调试目录中断、登录失效误报及途牛跨域同名 Cookie 冲突。
+解压后双击「启动.command」在后台运行，终端窗口可以关闭，默认访问 `http://127.0.0.1:8765`；
+使用「停止.command」「重启.command」「查看状态.command」管理服务，默认不设置登录 Mac 时自动启动。
 与旧版并行验证时双击「启动测试.command」，访问独立端口 `8766`。同一目录只能运行一个实例。
 
 1. 到 [Releases](https://github.com/dengmeiluan/ticket-monitoring/releases) 下载对应平台包（约 60–94MB）：Windows `…-win64.zip` / Linux `…-linux-x64.zip` / Apple Silicon `…-macos-arm64.zip` / Intel 芯片 Mac `…-macos-x64.zip`
@@ -267,7 +269,8 @@
 4. 保存即热重载生效，监控开始
 
 macOS 发行包是包含 Python 运行时的本机可执行程序，操作界面在浏览器中打开；
-无需安装 Python 或 Docker。首次运行会下载 Chromium 内核，请保持终端运行。
+无需安装 Python 或 Docker。首次运行会下载 Chromium 内核；正常入口在后台运行，
+测试入口需要保留终端窗口。升级前先停止旧实例，再迁移自己的配置、数据和会话，具体见升级步骤。
 在 Mac 桌面运行时，「渠道登录」会打开本机浏览器窗口，无需设置 Linux 的
 `DISPLAY` / `WAYLAND_DISPLAY`；缺少这些变量的无桌面 Linux 仍会提示导入会话。
 
