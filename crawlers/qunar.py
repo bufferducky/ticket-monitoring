@@ -3151,10 +3151,10 @@ class QunarCrawler(BaseCrawler):
         """保存原始响应文本到 debug 目录，用于排查价格异常。"""
         if not self.debug or not text:
             return
-        os.makedirs(self.debug_dir, exist_ok=True)
-        safe_tag = re.sub(r'[^\w]', '_', tag)
-        path = os.path.join(self.debug_dir, f"qunar_raw_{safe_tag}.txt")
         try:
+            os.makedirs(self.debug_dir, exist_ok=True)
+            safe_tag = re.sub(r'[^\w]', '_', tag)
+            path = os.path.join(self.debug_dir, f"qunar_raw_{safe_tag}.txt")
             with open(path, "w", encoding="utf-8") as f:
                 f.write(text)
             self.logger.info("[qunar] 已保存响应: %s (len=%d)", path, len(text))

@@ -55,6 +55,11 @@ _FAIL_DATED = ("达到最大重试圈数", "未解析到价格", "未拿到真�
                "未拿到日历价")
 # 非法链接/会话门拒也可能来自签名、入口或业务校验，不能证明认证失效。
 _AUTH_MARKS = ("未登录硬拒", "需登录", "请登录", "登录失效", "会话失效")
+# 爬虫会明确否定旧认证结论；只移除被否定的短语，保留同一行中其他
+# 独立的登录失败证据，避免把「非会话失效证据」误报为需要重登。
+_NEGATED_AUTH = re.compile(
+    r'(?:非|不是|不判(?:定为)?|不冒充|不等于|不代表|清除旧[「“"]?)'
+    r'(?:' + '|'.join(re.escape(mark) for mark in _AUTH_MARKS) + r')')
 _GATE_MARKS = ("会话门拒", "非法链接", "请求环境拒绝")
 _EXC_MARK = "请求异常"
 _RETRY_MARKS = ("命中风控", "疑似限流", "后第")
@@ -247,7 +252,8 @@ def parse_health(log_text, now=None, hours=24):
         d = dm.group(1) if dm else None
         okm = _OK_PRICE.search(msg)
         app_rows = _APP_ROWS.search(msg)
-        auth_reason = next((k for k in _AUTH_MARKS if k in msg), "")
+        auth_message = _NEGATED_AUTH.sub("", msg)
+        auth_reason = next((k for k in _AUTH_MARKS if k in auth_message), "")
         if _MAINT_MARK in msg:
             maint.add(plat)
             ev["note"] = "渠道维护模式"

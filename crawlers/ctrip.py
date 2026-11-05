@@ -2593,9 +2593,9 @@ class CtripCrawler(BaseCrawler):
     def _dump_xhr(self, captured: list, tag: str):
         if not self.debug or not captured:
             return
-        os.makedirs(self.debug_dir, exist_ok=True)
-        path = os.path.join(self.debug_dir, tag + ".txt")
         try:
+            os.makedirs(self.debug_dir, exist_ok=True)
+            path = os.path.join(self.debug_dir, tag + ".txt")
             with open(path, "w", encoding="utf-8") as f:
                 for i, item in enumerate(captured):
                     f.write(f"\n----- [{i}] {item['url']} -----\n")

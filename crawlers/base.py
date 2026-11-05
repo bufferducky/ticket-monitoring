@@ -561,7 +561,10 @@ class BaseCrawler:
         self.delay_min: float = float(config.get("delay_min", 2))
         self.delay_max: float = float(config.get("delay_max", 5))
         self.debug: bool = bool(config.get("debug", False))
-        self.debug_dir: str = config.get("debug_dir", "debug")
+        # 配置页允许留空（= debug）；相对路径始终按程序目录解析。
+        # 空串直接传 makedirs 会让调试落盘异常中断已经成功的价格查询。
+        debug_dir = str(config.get("debug_dir") or "").strip() or "debug"
+        self.debug_dir: str = os.path.abspath(os.path.join(_REPO_ROOT, debug_dir))
         root = str(config.get("user_data_dir") or "user_data").strip() or "user_data"
         self.user_data_root = os.path.abspath(os.path.join(_REPO_ROOT, root))
         # 可选本地代理（r319，如 Clash http://127.0.0.1:7897）：浏览器与

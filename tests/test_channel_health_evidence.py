@@ -34,6 +34,27 @@ def test_business_gate_failure_does_not_claim_authentication_failure(reason):
     assert not out.get("evidence", {}).get("tongcheng")
 
 
+@pytest.mark.parametrize("message", [
+    "本轮按 error 记录（非会话失效证据），不置 login_suspect、不进入空结果退避链",
+    "本轮按 timeout 记录（非会话失效证据），不置 login_suspect",
+    "原站明确返回无符合条件的航班（1999/no-result）——按空结果记录，不冒充会话失效",
+    "整体门拒在案，跳过退避重试；不判会话失效",
+    "登录态探测在线——清除旧「会话失效」证据，本轮继续按实际结果重试",
+])
+def test_negated_authentication_messages_do_not_request_login(message):
+    out = _parse(_line("2026-10-22 10:00:17", "[qunar] " + message, "WARNING"))
+    assert out["rounds"][0]["plats"]["qunar"]["need_login"] is False
+    assert out["stats"]["qunar"]["auth"] == 0
+    assert not out["evidence"].get("qunar")
+
+
+def test_negated_phrase_does_not_hide_a_separate_explicit_login_failure():
+    out = _parse(_line("2026-10-22 10:00:17",
+                       "[qunar] 前次异常非会话失效证据；本次接口返回请登录", "WARNING"))
+    assert out["rounds"][0]["plats"]["qunar"]["need_login"] is True
+    assert out["evidence"]["qunar"]["unknown"]["auth_reason"] == "请登录"
+
+
 def test_explicit_auth_failure_records_event_time_and_safe_reason():
     out = _parse(
         _line("2026-10-22 10:00:00", "===== 开始一轮扫描 ====="),
